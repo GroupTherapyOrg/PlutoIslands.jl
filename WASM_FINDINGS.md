@@ -55,6 +55,16 @@ and degraded by the judgement. Not yet minimized — reproduce via
 Same *class* as gap #2 (validates-then-traps), reinforcing the
 traps-never-happen hazard note there.
 
+## 4. `escape_string` validates-then-traps `unreachable`  [OPEN]
+
+```julia
+f = (s::String) -> "\"" * escape_string(s) * "\""   # compiles + validates
+# TRAPS unreachable when called (even on "")
+# workaround: replace(replace(s, "\\"=>...), "\""=>...) chain — works
+```
+Found by PlutoIslands initial-body verification (String bond plain-text
+bodies). Same validates-then-traps class as #2/#3.
+
 ## Survey-ranked WT/extractor work items (from tools/ISLAND_SURVEY.md)
 
 Baseline 2026-06-10: **16/64 bond groups extraction-ok** over 12 featured

@@ -299,7 +299,10 @@ function _plan_cell(
         foldl((a, b) -> :($a * $b), parts)
     elseif mime == "text/plain"
         _capture_value!(stmts, body_t, val) || return fail("empty cell body")
-        :(string($val))
+        # Pluto's text/plain body is repr-flavoured: bare Strings render WITH
+        # quotes/escapes. The function object is interpolated directly so the
+        # sandbox eval resolves it regardless of module context.
+        :($(_plain_body)($val))
     else
         return fail("unsupported output mime $(mime) in v0 (text/plain & md-text/html only)")
     end
@@ -309,6 +312,13 @@ function _plan_cell(
 
     (CellPlan(; cell_id=id, mime, export_name, fn_expr, ok=true), preamble)
 end
+
+"Pluto text/plain body semantics: strings repr-quoted, everything else string()."
+_plain_body(x)::String = string(x)
+# escape_string traps `unreachable` in wasm (WASM_FINDINGS #4) — replace-chain
+# covers backslash+quote, the dominant cases; the oracle catches exotica.
+_plain_body(s::String)::String =
+    "\"" * replace(replace(s, "\\" => "\\\\"), "\"" => "\\\"") * "\""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point
