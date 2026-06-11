@@ -65,6 +65,26 @@ f = (s::String) -> "\"" * escape_string(s) * "\""   # compiles + validates
 Found by PlutoIslands initial-body verification (String bond plain-text
 bodies). Same validates-then-traps class as #2/#3.
 
+## 5. `string(::DataType)` returns `""` — SILENTLY WRONG  [OPEN]
+
+```julia
+f = (x::Int64) -> string(typeof(x))
+# compiles + validates + runs; wasm returns "" — native returns "Int64".
+# No trap, no validation failure: a silent wrong value. Caught only by
+# PlutoIslands' differential oracle (cell `typeof(x)` in
+# "Interactivity with HTML": wasm "" != native "Int64").
+```
+Highest-severity class — silent divergence. Suggest the WT fuzzer's
+catalogue weight `string∘typeof` / DataType-to-string paths.
+
+## 6. Complex-arithmetic chain fails wasm validation  [OPEN, unminimized]
+
+`newton.jl`'s cell functions (complex Newton iteration: `f(x) = x^m - 2`
+chains, `Complex{Float64}` arithmetic, `roots`/`abs2` style code) compile
+but fail wasm-tools validation ("func N failed to validate"), 11 cells
+across 4 groups. Reproduce via `generate_wasm_islands` on
+`test/notebooks/featured/newton.jl` and dump a failing group's `fn_expr`s.
+
 ## Survey-ranked WT/extractor work items (from tools/ISLAND_SURVEY.md)
 
 Baseline 2026-06-10: **16/64 bond groups extraction-ok** over 12 featured
