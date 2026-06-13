@@ -311,6 +311,21 @@ function _plan_cell(
         append!(stmts, body)
     end
 
+    # C-P12: `using` cells are not reliably in the upstream closure —
+    # where_assigned can't see the soft-scope names a plain `using Pkg`
+    # provides (e.g. Collatz's hailstone_sequence), so cells whose only
+    # non-bond upstream is a using-cell got an EMPTY preamble and the
+    # sandbox lacked the packages. Package loading is idempotent: hoist
+    # every using/import expr in the notebook; extract_groups dedups.
+    for nc in notebook.cells
+        ncex = _parse_cell(nc)
+        ncex === nothing && continue
+        pre_all, _ = _split_preamble(ncex)
+        for pe in pre_all
+            (pe isa Expr && pe.head in (:using, :import)) && push!(preamble, pe)
+        end
+    end
+
     # The target cell itself → value capture + body strategy
     pre_t, body_t = _split_preamble(ex)
     append!(preamble, pre_t)
